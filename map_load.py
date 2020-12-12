@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import re
+import yaml
 
 
 def read_pgm(filename, byteorder='>'):
@@ -27,20 +28,18 @@ def read_pgm(filename, byteorder='>'):
                          ).reshape((int(height), int(width)))
 
 
-def crop_map(map):
+def crop_map(workspace):
     """
-    :param map: 2D numpy array of map
+    :param workspace: 2D numpy array of map
     :return: new_map: map cropped to remove unused gray space
     """
     black_value = 0
-    w = np.shape(map)[0]
-    h = np.shape(map)[1]
     min_x = np.Inf
     min_y = np.Inf
     max_x = -np.Inf
     max_y = -np.Inf
     index_r = 0
-    for row in map:
+    for row in workspace:
         if black_value in row:
             if index_r < min_y:
                 min_y = index_r
@@ -58,19 +57,40 @@ def crop_map(map):
 
         index_r = index_r + 1
     if np.isinf(max_x) or np.isinf(min_x) or np.isinf(max_y) or np.isinf(min_y):
-        raise(ValueError("Invalid Map"))
+        raise (ValueError("Invalid Map"))
 
-    return map[min_y:max_y,min_x:max_x]
+    return workspace[min_y:max_y, min_x:max_x]
+
+
+def generate_c_space(workspace, filename):
+    yaml_filename = filename[0:-4] + '.yaml'
+    with open(yaml_filename, 'r') as stream:
+        data = (yaml.safe_load(stream))
+
+    w = np.shape(workspace)[0]
+    h = np.shape(workspace)[1]
+    resolution = data['resolution']
+    turtlebot_radius = 0.220
+    FS = 1.5
+    return c_space
+
+
+def load_map(filename):
+    workspace = read_pgm(filename)
+    workspace = crop_map(workspace)
+    c_space = generate_c_space(workspace, filename)
+    return c_space
 
 
 def main():
-    map = read_pgm('tb_map.pgm')
-    plt.imshow(map, cmap='gray')
+    workspace = read_pgm('tb_map.pgm')
+    plt.imshow(workspace, cmap='gray')
     plt.show()
     # black is 0, grey is 192, white is 254
-    map = crop_map(map)
-    plt.imshow(map, cmap='gray')
+    workspace = crop_map(workspace)
+    plt.imshow(workspace, cmap='gray')
     plt.show()
+    c_space = generate_c_space(workspace, 'tb_map.pgm')
 
 
 if __name__ == '__main__':

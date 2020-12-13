@@ -17,7 +17,7 @@ class MotionCommander:
         rospy.init_node('mover', anonymous=False)
         rospy.Subscriber("odom", Odometry, self._update_state)
         self.pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
-        self.coordinate_offset = np.array([3.3, 2.95])
+        self.coordinate_offset = np.array([3.3, 3.05])
         self.tolerance = 0.01
         self.angle_tolerance = 0.2
         self.max_vel = 0.26
@@ -142,7 +142,7 @@ if __name__ == '__main__':
             else:
                 try:
                     goal_num = int(goal_num)
-                except Exception as e:
+                except ValueError as e:
                     print("Goal must be numeric or 'end'!")
                     goal_num = cur_goal
 

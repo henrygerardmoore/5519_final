@@ -17,13 +17,16 @@ class MotionCommander:
         rospy.init_node('mover', anonymous=False)
         rospy.Subscriber("odom", Odometry, self._update_state)
         self.pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+        self.coordinate_offset = np.array([3.3, 2.95])
         self.tolerance = 0.01
-        self.angle_tolerance = 0.01
+        self.angle_tolerance = 0.1
+        self.max_vel = 0.26
+        self.max_ang_vel = 0.7
+        self.k_p_angle = -1
+        self.k_p_vel = 1
+        self.goal_reached = False
         self.desired_location = np.array([x, y])
-        self.max_vel = 0.2
-        self.max_ang_vel = 0.5
-        self.k_p_angle = 0.1
-        self.k_p_vel = 0.5
+        self.move_to_position(x, y)
 
     def _update_state(self, response):
         rospy.wait_for_service("gazebo/get_model_state")
@@ -35,10 +38,10 @@ class MotionCommander:
         self.angle = tf.transformations.euler_from_quaternion(explicit_quat)[2]
         # roll = angle[0], pitch = angle[1], yaw = angle[2]
         self.command_movement()
-        print("Location: x = " + str(self.location[0]) + ", y = " + str(self.location[1]))
-        print("Angle = " + str(self.angle))
 
     def command_movement(self):
+        if self.goal_reached:
+            return
         twist = Twist()
         twist.linear.y = 0
         twist.linear.z = 0
@@ -47,6 +50,8 @@ class MotionCommander:
 
         if distance(self.location, self.desired_location) < self.tolerance:
             self.stop()
+            self.goal_reached = True
+            print("Waypoint reached.")
             return
 
         d_loc = self.desired_location - self.location
@@ -56,19 +61,31 @@ class MotionCommander:
         if d_angle > np.pi:
             d_angle = -(2 * np.pi - d_angle)
 
-        if d_angle < self.angle_tolerance:
-            ang_vel = 0
+        if np.abs(d_angle) < np.abs(self.angle_tolerance):
+            self.stop()
+            ang_vel = self.k_p_angle * d_angle
+            if ang_vel > 0:
+                ang_vel = ang_vel + 0.02
+            else:
+                ang_vel = ang_vel - 0.02
             lin_vel = self.k_p_vel * d
+            lin_vel = lin_vel + 0.05
         else:
             ang_vel = self.k_p_angle * d_angle
+            if ang_vel > 0:
+                ang_vel = ang_vel + 0.05
+            else:
+                ang_vel = ang_vel - 0.05
             lin_vel = 0
         twist.linear.x = constrain(lin_vel, 0, self.max_vel)
         twist.angular.z = constrain(ang_vel, -self.max_ang_vel, self.max_ang_vel)
         self.pub.publish(twist)
 
     def move_to_position(self, x, y):
-        self.desired_location[0] = x
-        self.desired_location[1] = y
+        self.goal_reached = False
+        self.desired_location[0] = y - self.coordinate_offset[1]
+        self.desired_location[1] = -(x - self.coordinate_offset[0])
+        print("Moving to (" + str(self.desired_location[0]) + ", " + str(self.desired_location[1]) + ")")
 
     def stop(self):
         twist = Twist()
@@ -95,9 +112,32 @@ def constrain(val, low, high):
     return val
 
 
+def traverse_path(cur_goal, next_goal, goal_matrix):
+    if cur_goal == next_goal:
+        return True
+    path = goal_matrix[next_goal, cur_goal]
+    for point in path:
+        mc.move_to_position(point[0], point[1])
+        while not mc.goal_reached:
+            # wait until we reach the waypoint
+            pass
+    return True
+
+
 if __name__ == '__main__':
     goals = np.array([[3.25, 1], [2.7, 2.4], [3.8, 2.4], [3.8, 3.45], [2.7, 3.45], [3.25, 5.1], [5, 3], [1.5, 3]])
     goal_matrix = np.load('goal_matrix.npy', allow_pickle=True)
     mc = MotionCommander(goals[0][0], goals[0][1])
+    cur_loc = goals[0]
+    cur_goal = 0
     while True:
-        continue
+        if mc.goal_reached:
+            print
+            goal_num = input('Enter goal number: ')
+            if 0 <= goal_num < len(goals):
+                print("Traversing to goal " + str(goal_num))
+                success = traverse_path(cur_goal, goal_num, goal_matrix)
+                if success:
+                    cur_goal = goal_num
+            else:
+                print("Enter a number 0-" + str(len(goals) - 1))

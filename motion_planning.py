@@ -1,3 +1,4 @@
+import PyQt5
 import matplotlib.pyplot as plt
 import numpy as np
 import map_load
@@ -22,6 +23,7 @@ def distance(p1, p2):
 
 
 def goal_bias_rrt(n, r, p_goal, eps, configuration_space, start_loc, goal_loc):
+    print("Searching for goal...")
     t0 = time.time()
     width = configuration_space.x_bounds[1] - configuration_space.x_bounds[0]
     height = configuration_space.y_bounds[1] - configuration_space.y_bounds[0]
@@ -132,7 +134,7 @@ def smooth_path(old_path, configuration_space):
     return path
 
 
-def generate_goal_matrix(goals, filename, n_samples=10000, r=0.3, p_goal=0.05, eps=0.2):
+def generate_goal_matrix(goals, filename, n_samples=10000, r=0.5, p_goal=0.05, eps=0.3):
     [resolution, configuration_space] = map_load.load_map(filename)
     configuration_space = c_space.CSpace(configuration_space, goals, resolution)
     n = len(goals)

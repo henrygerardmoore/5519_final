@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 
 class CSpace:
@@ -21,7 +22,7 @@ class CSpace:
         if d == 0:
             return self.any_obstacles_intersect_point(p1)
         v = (p2 - p1) / d
-        num_points = 3 * np.ceil(d / self.resolution).astype('int') + 1
+        num_points = 2 * np.ceil(d / self.resolution).astype(int) + 1
         for i in range(0, num_points + 1):
             cur_point = p1 + (i / num_points) * v
             if self.any_obstacles_intersect_point(cur_point):
@@ -30,13 +31,36 @@ class CSpace:
         return False
 
     def any_obstacles_intersect_point(self, p):
+        # check every adjacent pixel
         if not ((self.x_bounds[0] <= p[0] <= self.x_bounds[1]) and (self.y_bounds[0] <= p[1] <= self.y_bounds[1])):
             return True
         ind = self._loc_to_index(p)
-        return self.c_space[ind[1], ind[0]] == self.black_value
+        if ind[1] > 0 and self.c_space[ind[1] - 1, ind[0]] == self.black_value:
+            return True
+        if ind[1] < self.x_bounds[1] and self.c_space[ind[1] + 1, ind[0]] == self.black_value:
+            return True
+        if ind[0] > 0 and self.c_space[ind[1], ind[0] - 1] == self.black_value:
+            return True
+        if ind[0] < self.y_bounds[1] and self.c_space[ind[1], ind[0] + 1] == self.black_value:
+            return True
+
+        if ind[0] > 0 and ind[1] > 0 and self.c_space[ind[1] - 1, ind[0] - 1] == self.black_value:
+            return True
+        if ind[0] < self.y_bounds[1] and ind[1] < self.x_bounds[1] and self.c_space[
+            ind[1] + 1, ind[0] + 1] == self.black_value:
+            return True
+        if ind[0] > 0 and ind[1] < self.x_bounds[1] and self.c_space[
+            ind[1] + 1, ind[0] - 1] == self.black_value:
+            return True
+        if ind[1] > 0 and ind[0] < self.y_bounds[1] and self.c_space[
+            ind[1] - 1, ind[0] + 1] == self.black_value:
+            return True
+        if self.c_space[ind[1], ind[0]] == self.black_value:
+            return True
+        return False
 
     def _index_to_loc(self, indices):
         return indices * self.resolution
 
     def _loc_to_index(self, loc):
-        return (loc.astype('float') / self.resolution).astype('int')
+        return np.floor(loc.astype(float) / self.resolution).astype(int)

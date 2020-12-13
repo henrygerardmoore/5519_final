@@ -133,7 +133,11 @@ if __name__ == '__main__':
     while True:
         if mc.goal_reached:
             print
-            goal_num = input('Enter goal number: ')
+            goal_num = input('Enter goal number or "end" to end: ')
+            if goal_num == 'end':
+                mc.stop()
+                print("Goodbye!")
+                break
             if 0 <= goal_num < len(goals):
                 print("Traversing to goal " + str(goal_num))
                 success = traverse_path(cur_goal, goal_num, goal_matrix)

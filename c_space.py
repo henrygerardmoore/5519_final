@@ -22,9 +22,9 @@ class CSpace:
         if d == 0:
             return self.any_obstacles_intersect_point(p1)
         v = (p2 - p1) / d
-        num_points = 2 * np.ceil(d / self.resolution).astype(int) + 1
+        num_points = np.ceil(d / self.resolution).astype(int) + 1
         for i in range(0, num_points + 1):
-            cur_point = p1 + (i / num_points) * v
+            cur_point = p1 + (float(i) / float(num_points)) * v * d
             if self.any_obstacles_intersect_point(cur_point):
                 return True
 

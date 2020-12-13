@@ -121,7 +121,7 @@ def compute_length(path):
 
 def smooth_path(old_path, configuration_space):
     print("Smoothing")
-    num_passes = 1
+    num_passes = 50
     path = old_path[:]
     for i in range(0, num_passes):
         index = 1
@@ -134,7 +134,7 @@ def smooth_path(old_path, configuration_space):
     return path
 
 
-def generate_goal_matrix(goals, filename, n_samples=10000, r=0.5, p_goal=0.05, eps=0.3):
+def generate_goal_matrix(goals, filename, n_samples=10000, r=0.2, p_goal=0.05, eps=0.1):
     [resolution, configuration_space] = map_load.load_map(filename)
     configuration_space = c_space.CSpace(configuration_space, goals, resolution)
     n = len(goals)
@@ -149,12 +149,14 @@ def generate_goal_matrix(goals, filename, n_samples=10000, r=0.5, p_goal=0.05, e
             start_loc = goals[i]
             goal_loc = goals[j]
             cur_path = goal_bias_rrt(n_samples, r, p_goal, eps, configuration_space, start_loc, goal_loc)[0]
-            # cur_path = smooth_path(cur_path, configuration_space)
+            cur_path = smooth_path(cur_path, configuration_space)
             goal_matrix[i, j] = cur_path
             if cur_path is not None:
                 reverse_path = cur_path[::-1]
             else:
                 reverse_path = None
+            # display_c_space(configuration_space)
+            # display_path(cur_path)
             goal_matrix[j, i] = reverse_path
     return [configuration_space, goal_matrix]
 

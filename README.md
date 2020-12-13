@@ -17,5 +17,5 @@ Run motion_planning.py to construct the c-space and generate motion plans betwee
 
 ## Motion Commanding
 
-Must have a 'goal_matrix.npy' file. Must have brought up turtlebot3_gazebo (https://emanual.robotis.com/docs/en/platform/turtlebot3/simulation/). 
+Must have a 'goal_matrix.npy' file. Must have brought up turtlebot3_gazebo (https://emanual.robotis.com/docs/en/platform/turtlebot3/simulation/). Type goal number (goals are hard-coded in C-Space coordinate frame) to navigate from current goal to destination. Robot initial location must be able to move directly to goal 0.
 

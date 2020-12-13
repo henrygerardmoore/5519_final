@@ -6,18 +6,18 @@ import time
 
 
 class TreeNode:
-    def __init__(self, location: np.array, parent):
+    def __init__(self, location, parent):
         self.location = location
         self.children = []
         self.parent = parent
 
 
-def v_direction(l1: np.array, l2: np.array):
+def v_direction(l1, l2):
     # returns a unit vector from l1 to l2
     return (l2 - l1) / distance(l1, l2)
 
 
-def distance(p1: np.array, p2: np.array):
+def distance(p1, p2):
     return np.linalg.norm(p2 - p1)
 
 
@@ -56,13 +56,13 @@ def goal_bias_rrt(n, r, p_goal, eps, configuration_space, start_loc, goal_loc):
         direction = v_direction(q_near, q_rand)
         step = r
         q_new = q_near + step * direction
-        while configuration_space.any_obstacles_intersect_point(
-                q_new) or configuration_space.any_obstacles_intersect_line(q_near, q_new):
+        while (configuration_space.any_obstacles_intersect_point(
+                q_new) or configuration_space.any_obstacles_intersect_line(q_near, q_new)) and step > r * 0.01:
             step = step - 0.1 * r
             q_new = q_near + step * direction
 
         # now q_new is collision free or the same as q_near
-        if np.array_equal(q_new, q_near):
+        if np.array_equal(q_new, q_near) or step < r * 0.1:
             continue  # we just generate a new point
 
         tree_nodes.append(TreeNode(q_new, tree_nodes[index_q_near]))
@@ -75,19 +75,34 @@ def goal_bias_rrt(n, r, p_goal, eps, configuration_space, start_loc, goal_loc):
             path = recover_path(tree_nodes)
             path_length = compute_length(path)
             goal_not_found = False
+            print("Goal found")
+    if goal_not_found:
+        print("Goal not found")
 
+    # display_tree(tree_nodes[0], configuration_space)
     return path, path_length, time.time() - t0
+
+
+def display_tree(tree_node, configuration_space):
+    display_c_space(configuration_space)
+    display_tree_helper(tree_node)
+    plt.show()
+
+
+def display_tree_helper(tree_node):
+    for child in tree_node.children:
+        plt.plot([tree_node.location[0], child.location[0]], [tree_node.location[1], child.location[1]], 'r')
+        display_tree_helper(child)
 
 
 def recover_path(tree_nodes):
     # goal node will be at end of tree node list
-    path = tree_nodes[-1].location
+    path = [tree_nodes[-1].location]
     cur_node = tree_nodes[-1]
     while cur_node.parent is not None:
         cur_node = cur_node.parent
         path.append(cur_node.location)
 
-    path.reverse()
     return path
 
 
@@ -102,14 +117,75 @@ def compute_length(path):
     return cumulative_length
 
 
+def smooth_path(old_path, configuration_space):
+    print("Smoothing")
+    num_passes = 1
+    path = old_path[:]
+    for i in range(0, num_passes):
+        index = 1
+        while index < len(path) - 1:
+            if not configuration_space.any_obstacles_intersect_line(path[index - 1], path[index + 1]):
+                del (path[index])
+            else:
+                index = index + 1
+    print("Done smoothing")
+    return path
+
+
+def generate_goal_matrix(goals, filename, n_samples=10000, r=0.3, p_goal=0.05, eps=0.2):
+    [resolution, configuration_space] = map_load.load_map(filename)
+    configuration_space = c_space.CSpace(configuration_space, goals, resolution)
+    n = len(goals)
+    goal_matrix = np.zeros([n, n], dtype=np.ndarray)
+    index = 0
+    for i in range(0, n):
+        for j in range(0, n):
+            index = index + 1
+            if j >= i:
+                continue
+
+            start_loc = goals[i]
+            goal_loc = goals[j]
+            cur_path = goal_bias_rrt(n_samples, r, p_goal, eps, configuration_space, start_loc, goal_loc)[0]
+            # cur_path = smooth_path(cur_path, configuration_space)
+            goal_matrix[i, j] = cur_path
+            if cur_path is not None:
+                reverse_path = cur_path[::-1]
+            else:
+                reverse_path = None
+            goal_matrix[j, i] = reverse_path
+    return [configuration_space, goal_matrix]
+
+
+def display_c_space(configuration_space):
+    plt.imshow(configuration_space.c_space, cmap='gray',
+               extent=[configuration_space.x_bounds[0], configuration_space.x_bounds[1],
+                       configuration_space.y_bounds[0],
+                       configuration_space.y_bounds[1]], origin='lower')
+
+
+def display(configuration_space, goal_matrix):
+    display_c_space(configuration_space)
+    n = np.shape(goal_matrix)[0]
+    for i in range(0, n):
+        for j in range(0, n):
+            if j >= i:
+                continue
+            display_path(goal_matrix[i, j])
+
+
+def display_path(path):
+    if path is None:
+        return
+    x_values = []
+    y_values = []
+    for point in path:
+        x_values.append(point[0])
+        y_values.append(point[1])
+    plt.plot(x_values, y_values)
+
+
 def main():
-    n_samples = 1000
-    r = 1
-    p_goal = 0.05
-    eps = 0.1
-    [resolution, configuration_space] = map_load.load_map('tb_map.pgm')
-    plt.imshow(c_space, cmap='gray')
-    plt.show()
     # goal 1: 95, 65
     # goal 2: 48, 75
     # goal 3: 48, 55
@@ -119,23 +195,12 @@ def main():
     # goal 7: 60, 100
     # goal 8: 20, 60
 
-    goals = np.array([[95, 65], [48, 75], [48, 55], [70, 55], [70, 75], [60, 30], [60, 100], [20, 70]])
+    goals = np.array([[3.25, 1], [2.7, 2.4], [3.8, 2.4], [3.8, 3.45], [2.7, 3.45], [3.25, 5.1], [5, 3], [1.5, 3]])
+    [configuration_space, goal_matrix] = generate_goal_matrix(goals, 'tb_map.pgm')
 
-    configuration_space = c_space.CSpace(configuration_space, goals, resolution)
-    n = len(goals)
-    for i in range(0, n):
-        for j in range(0, n):
-            if j >= i:
-                continue
-
-            start_loc = goals[i]
-            goal_loc = goals[j]
-            goal_matrix = np.zeros([n, n])
-            cur_path = goal_bias_rrt(n_samples, r, p_goal, eps, configuration_space, start_loc, goal_loc)
-            goal_matrix[i, j] = cur_path
-            reverse_path = cur_path.copy()
-            reverse_path.reverse()
-            goal_matrix[j, i] = reverse_path
+    display(configuration_space, goal_matrix)
+    plt.show()
+    np.save('goal_matrix', goal_matrix)
 
 
 if __name__ == '__main__':

@@ -133,7 +133,7 @@ def generate_c_space(workspace, filename):
     h = np.shape(workspace)[1]
     resolution = data['resolution']
     turtlebot_radius = 0.220
-    FS = 1.1
+    FS = 1.3
     radius = turtlebot_radius * FS
 
     c_space = preprocess_c_space(workspace, w, h, radius, resolution)
@@ -163,7 +163,7 @@ def main():
     workspace = crop_map(workspace)
     # plt.imshow(workspace, cmap='gray')
     # plt.show()
-    c_space = generate_c_space(workspace, 'tb_map.pgm')
+    [resolution, c_space] = generate_c_space(workspace, 'tb_map.pgm')
     plt.imshow(c_space, cmap='gray')
     plt.show()
 

@@ -11,18 +11,32 @@ class CSpace:
         self.path_matrix = []
         w = np.shape(c_space)[1]
         h = np.shape(c_space)[0]
+        self.shape = np.shape(c_space)
         self.x_bounds = [0, resolution * w]
         self.y_bounds = [0, resolution * h]
         self.resolution = resolution
 
     def any_obstacles_intersect_line(self, p1, p2):
-        pass
+        d = np.linalg.norm(p2 - p1)
+        if d == 0:
+            return self.any_obstacles_intersect_point(p1)
+        v = (p2 - p1) / d
+        num_points = 3 * np.ceil(d / self.resolution).astype('int') + 1
+        for i in range(0, num_points + 1):
+            cur_point = p1 + (i / num_points) * v
+            if self.any_obstacles_intersect_point(cur_point):
+                return True
+
+        return False
 
     def any_obstacles_intersect_point(self, p):
-        pass
+        if not ((self.x_bounds[0] <= p[0] <= self.x_bounds[1]) and (self.y_bounds[0] <= p[1] <= self.y_bounds[1])):
+            return True
+        ind = self._loc_to_index(p)
+        return self.c_space[ind[1], ind[0]] == self.black_value
 
-    def index_to_loc(self, indices: np.array):
+    def _index_to_loc(self, indices):
         return indices * self.resolution
 
-    def loc_to_index(self, loc: np.aray):
-        return loc / self.resolution
+    def _loc_to_index(self, loc):
+        return (loc.astype('float') / self.resolution).astype('int')

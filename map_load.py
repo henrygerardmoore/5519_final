@@ -134,7 +134,7 @@ def generate_c_space(workspace, filename):
     h = np.shape(workspace)[1]
     resolution = data['resolution']
     turtlebot_radius = 0.220
-    FS = 1.2
+    FS = 1.0
     radius = turtlebot_radius * FS
 
     c_space = preprocess_c_space(workspace, w, h, radius, resolution)

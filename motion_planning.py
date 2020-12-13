@@ -120,16 +120,22 @@ def compute_length(path):
 
 
 def smooth_path(old_path, configuration_space):
-    print("Smoothing")
-    num_passes = 50
+    print("Smoothing...")
     path = old_path[:]
-    for i in range(0, num_passes):
-        index = 1
-        while index < len(path) - 1:
-            if not configuration_space.any_obstacles_intersect_line(path[index - 1], path[index + 1]):
-                del (path[index])
-            else:
-                index = index + 1
+    num_passes = 5
+    for k in range(0, num_passes):
+        i = 0
+        while i < len(path) - 2:
+            p0 = path[i]
+            j = len(path) - 1
+            while j > i + 1:
+                pj = path[j]
+                if not configuration_space.any_obstacles_intersect_line(p0, pj):
+                    del (path[i + 1:j])
+                    break
+                else:
+                    j = j - 1
+            i = i + 1
     print("Done smoothing")
     return path
 

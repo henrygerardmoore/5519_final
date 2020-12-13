@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import re
 import yaml
+import c_space
 
 # black is 0, grey is 192, white is 254
 black_value = 0
@@ -158,13 +159,14 @@ def load_map(filename):
 
 def main():
     workspace = read_pgm('tb_map.pgm')
-    # plt.imshow(workspace, cmap='gray')
-    # plt.show()
     workspace = crop_map(workspace)
-    # plt.imshow(workspace, cmap='gray')
-    # plt.show()
-    [resolution, c_space] = generate_c_space(workspace, 'tb_map.pgm')
-    plt.imshow(c_space, cmap='gray')
+    [resolution, configuration_space] = generate_c_space(workspace, 'tb_map.pgm')
+    configuration_space = c_space.CSpace(configuration_space, [resolution], resolution)
+
+    plt.imshow(configuration_space.c_space, cmap='gray',
+               extent=[configuration_space.x_bounds[0], configuration_space.x_bounds[1],
+                       configuration_space.y_bounds[0],
+                       configuration_space.y_bounds[1]], origin='lower')
     plt.show()
 
 

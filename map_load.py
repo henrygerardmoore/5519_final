@@ -167,6 +167,8 @@ def main():
                extent=[configuration_space.x_bounds[0], configuration_space.x_bounds[1],
                        configuration_space.y_bounds[0],
                        configuration_space.y_bounds[1]], origin='lower')
+    plt.xlabel("X (m)")
+    plt.ylabel("Y (m)")
     plt.show()
 
 

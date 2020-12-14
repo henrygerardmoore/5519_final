@@ -9,6 +9,9 @@ Warehouse Robot Motion Planning
 
 Requires ROS Kinetic, gazebo, python 2.7, numpy, matplotlib, and all associated dependencies.
 
+## Map Generation
+To generate the map, see https://emanual.robotis.com/docs/en/platform/turtlebot3/simulation/. We use both the PGM and YAML file created by this in our software.
+
 ## Map loading and C-Space Construction
 Run map_load.py for a demo of map loading and the associated C-Space construction. Must have generated a map of the desired workspace using turtlebot3 SLAM (https://emanual.robotis.com/docs/en/platform/turtlebot3/simulation/). Map YAML and PGM files must be in program directory.
 
